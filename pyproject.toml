@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [
     { name = "fabianfalon", email = "fabian.falon@gmail.com" }
 ]
+license = "MIT"
 requires-python = ">=3.13"
 dependencies = [
     "certifi>=2026.10.19",

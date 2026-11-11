@@ -5,7 +5,7 @@
 
 <p><strong>Asistente de terminal que responde en lenguaje natural sobre tus tickets de Jira:<br>qué tienes, en qué estado está y qué se ha quedado atascado.</strong></p>
 
-<img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-3776AB?logo=python&logoColor=white"><img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue"><img alt="Tests: pytest" src="https://img.shields.io/badge/tests-pytest-0A9EDA?logo=pytest&logoColor=white"><img alt="License: pending" src="https://img.shields.io/badge/license-pending-lightgrey"><img alt="Built with PydanticAI" src="https://img.shields.io/badge/built%20with-PydanticAI-E92063">
+<img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-3776AB?logo=python&logoColor=white"><img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-blue"><img alt="Tests: pytest" src="https://img.shields.io/badge/tests-pytest-0A9EDA?logo=pytest&logoColor=white"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green"><img alt="Built with PydanticAI" src="https://img.shields.io/badge/built%20with-PydanticAI-E92063">
 
 </div>
 
@@ -183,4 +183,4 @@ src/jirafa/
 
 ## Licencia
 
-⏳ **Pendiente de confirmar.**
+[MIT](./LICENSE) © 2026 fabianfalon
