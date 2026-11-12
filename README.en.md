@@ -124,12 +124,14 @@ To quit: `salir`, `exit`, `quit`, `q` or `Ctrl-D`.
 | `JIRA_URL` | — | `https://<YOUR_COMPANY>.atlassian.net` (required in `real`) |
 | `JIRA_EMAIL` | — | Your Atlassian email (required in `real`) |
 | `JIRA_API_TOKEN` | — | Your Atlassian API token (required in `real`) |
+| `JIRAFA_BLOCKED_STATUSES` | `Blocked,Bloqueado,Impedimento,On Hold,En espera` | Statuses that mean blocked in your Jira (comma-separated) |
+| `JIRAFA_STALE_AFTER_DAYS` | `7` | An open ticket with no changes for **more** than these days is stale |
 
 ### Agent tools
 
 | Tool | Parameters | What it does |
 |---|---|---|
-| `list_my_tickets` | `include_done: bool = False` | Your assigned tickets (max. 50, most recent first) |
+| `list_my_tickets` | `include_done: bool = False` | Report on your assigned tickets (max. 50): totals per category, keys grouped by status, blocked, stale and the full list |
 | `get_ticket_detail` | `key: str` | Description and latest 5 comments of a ticket |
 
 ### Library usage
@@ -146,7 +148,7 @@ print(result.output)
 ## Development
 
 ```bash
-uv run pytest            # 31 tests, sin red ni LLM real
+uv run pytest            # 46 tests, sin red ni LLM real
 uv run ruff check        # linter
 uv run ruff format       # formateo
 uv run mypy              # verificador de tipos (estricto)
@@ -176,6 +178,8 @@ src/jirafa/
 - [x] Demo mode
 - [x] Tests without LLM or network
 - [x] Type checker (mypy, strict mode)
+- [x] Deterministic logic: stale and blocked tickets in code
+- [ ] Observability: tokens, cost, latency and traces
 - [ ] Try against real Jira
 - [ ] Evals with real questions
 - [ ] Triage agent reusing the Jira client

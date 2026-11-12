@@ -4,10 +4,12 @@ Read from environment variables or from a `.env` file at the project root.
 No secrets hardcoded in the source.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import SecretStr, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from jirafa.rules import DEFAULT_BLOCKED_STATUSES, DEFAULT_STALE_AFTER_DAYS
 
 
 class Settings(BaseSettings):
@@ -28,6 +30,19 @@ class Settings(BaseSettings):
     jira_url: str | None = None  # e.g. https://yourcompany.atlassian.net
     jira_email: str | None = None
     jira_api_token: SecretStr | None = None  # SecretStr: never printed to logs by accident
+
+    # Attention rules (see rules.py). Status names that mean "blocked" in YOUR Jira,
+    # comma-separated in .env: JIRAFA_BLOCKED_STATUSES=Blocked,Bloqueado,Impedimento
+    # NoDecode: read the raw string and split it ourselves instead of expecting JSON.
+    jirafa_blocked_statuses: Annotated[list[str], NoDecode] = list(DEFAULT_BLOCKED_STATUSES)
+    jirafa_stale_after_days: int = Field(default=DEFAULT_STALE_AFTER_DAYS, ge=1)
+
+    @field_validator("jirafa_blocked_statuses", mode="before")
+    @classmethod
+    def _split_csv(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [s.strip() for s in value.split(",") if s.strip()]
+        return value
 
     @model_validator(mode="after")
     def _check_real_mode(self) -> "Settings":

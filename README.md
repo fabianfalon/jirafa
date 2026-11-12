@@ -125,12 +125,14 @@ Para salir: `salir`, `exit`, `quit`, `q` o `Ctrl-D`.
 | `JIRA_URL` | — | `https://<YOUR_COMPANY>.atlassian.net` (obligatorio en `real`) |
 | `JIRA_EMAIL` | — | Tu email de Atlassian (obligatorio en `real`) |
 | `JIRA_API_TOKEN` | — | Tu token de API de Atlassian (obligatorio en `real`) |
+| `JIRAFA_BLOCKED_STATUSES` | `Blocked,Bloqueado,Impedimento,On Hold,En espera` | Estados que cuentan como bloqueo en tu Jira (separados por comas) |
+| `JIRAFA_STALE_AFTER_DAYS` | `7` | Un ticket abierto sin cambios durante **más** de estos días se considera estancado |
 
 ### Tools del agente
 
 | Tool | Parámetros | Qué hace |
 |---|---|---|
-| `list_my_tickets` | `include_done: bool = False` | Tus tickets asignados (máx. 50, los más recientes primero) |
+| `list_my_tickets` | `include_done: bool = False` | Informe de tus tickets asignados (máx. 50): totales por categoría, claves agrupadas por estado, bloqueados, estancados y la lista completa |
 | `get_ticket_detail` | `key: str` | Descripción y últimos 5 comentarios de un ticket |
 
 ### Uso como librería
@@ -147,7 +149,7 @@ print(result.output)
 ## Desarrollo
 
 ```bash
-uv run pytest            # 31 tests, sin red ni LLM real
+uv run pytest            # 46 tests, sin red ni LLM real
 uv run ruff check        # linter
 uv run ruff format       # formateo
 uv run mypy              # verificador de tipos (estricto)
@@ -177,6 +179,8 @@ src/jirafa/
 - [x] Modo demo
 - [x] Tests sin LLM ni red
 - [x] Verificador de tipos (mypy, modo estricto)
+- [x] Lógica determinista: tickets estancados y bloqueados en código
+- [ ] Observabilidad: tokens, coste, latencia y trazas
 - [ ] Probar contra Jira real
 - [ ] Evals con preguntas reales
 - [ ] Agente de triaje reutilizando el cliente de Jira
