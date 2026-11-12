@@ -53,7 +53,7 @@ async def test_list_then_answer(demo_jira: DemoJiraClient) -> None:
     [ret] = tool_returns(result.all_messages())
     assert ret.tool_name == "list_my_tickets"
     assert ret.outcome == "success"
-    assert {t.key for t in ret.content} == {
+    assert {t.key for t in ret.content.tickets} == {
         "DEMO-101",
         "DEMO-102",
         "DEMO-103",

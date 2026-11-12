@@ -31,6 +31,9 @@ class Ticket(BaseModel):
     updated: datetime
     days_since_update: int = Field(description="Days since the last update")
     url: str
+    # Filled in by jirafa's rules (rules.py), not by Jira.
+    is_blocked: bool = Field(default=False, description="Open and in a blocked status")
+    is_stale: bool = Field(default=False, description="Open and not updated for too long")
 
 
 class Comment(BaseModel):

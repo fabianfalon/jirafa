@@ -26,6 +26,7 @@ from rich.markdown import Markdown
 from jirafa.agent import Deps, build_agent
 from jirafa.config import Settings
 from jirafa.jira import DemoJiraClient, HttpJiraClient, JiraClient
+from jirafa.rules import AttentionRules
 
 # Safety net per question: a confused model can't loop forever (or burn money).
 LIMITS = UsageLimits(request_limit=10, tool_calls_limit=15)
@@ -77,7 +78,10 @@ def show_answer(text: str, *, raw_json: bool = False) -> None:
 async def chat(settings: Settings, model: str, first_question: str | None) -> None:
     agent = build_agent(resolve_model(model))
     jira = build_jira_client(settings)
-    deps = Deps(jira=jira)
+    rules = AttentionRules.from_names(
+        settings.jirafa_blocked_statuses, settings.jirafa_stale_after_days
+    )
+    deps = Deps(jira=jira, rules=rules)
     history: list[ModelMessage] = []  # the conversation memory, resent on every turn
 
     console.print(f"🦒 [bold]jirafa[/]  ·  modelo: {model}  ·  Jira: {settings.jira_mode}")

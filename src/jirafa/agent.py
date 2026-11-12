@@ -1,12 +1,13 @@
 """The jirafa agent: instructions + tools + the model that ties them together."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models import Model
 
 from jirafa.jira import InvalidTicketKeyError, JiraClient, TicketNotFoundError
-from jirafa.models import Ticket, TicketDetail
+from jirafa.models import TicketDetail
+from jirafa.rules import AttentionRules, TicketsReport, build_report
 
 
 @dataclass
@@ -14,6 +15,7 @@ class Deps:
     """Everything the tools need at runtime. Injected on each run, never global."""
 
     jira: JiraClient
+    rules: AttentionRules = field(default_factory=AttentionRules)
 
 
 # The system prompt. Static on purpose: no dates or per-user data in here,
@@ -26,9 +28,12 @@ Rules:
 - Get data only through your tools. Never invent tickets, statuses, dates or people.
 - You are read-only: you cannot create, edit, assign or move tickets. If asked, say so \
 and share the ticket URL so the user can do it in Jira.
-- Be brief. When listing tickets, group them by status and show key, title, priority \
-and days since last update.
-- Flag tickets that look stuck: blocked, or not updated for more than 7 days.
+- Facts like counts, groups, blocked and stale tickets come precomputed by your tools \
+(count_by_category, keys_by_status, blocked_keys, stale_keys, is_blocked, is_stale). Use \
+them as they are: never recount, recompute dates or apply your own thresholds.
+- Be brief. By default, list tickets following keys_by_status and show key, title, priority \
+and days since last update. If the user asks for another view (e.g. by priority), adapt.
+- Always point out blocked and stale tickets, saying why (blocked status, or days without updates).
 - Always mention ticket keys (e.g. PROJ-123) so the user can find them.
 """
 
@@ -38,16 +43,17 @@ and days since last update.
 # JSON schema the LLM sees, so type hints and docstrings ARE the tool's prompt.
 
 
-async def list_my_tickets(ctx: RunContext[Deps], include_done: bool = False) -> list[Ticket]:
-    """List the Jira tickets assigned to the current user, most recently updated first.
+async def list_my_tickets(ctx: RunContext[Deps], include_done: bool = False) -> TicketsReport:
+    """Report on the Jira tickets assigned to the current user.
 
-    Returns every open ticket; filter or group them yourself (e.g. by status or
-    status_category) to answer the user's question.
+    Includes precomputed totals, keys grouped by status, blocked and stale tickets,
+    and every ticket (most recently updated first) for any other question.
 
     Args:
         include_done: Also include finished tickets. Only when the user asks about completed work.
     """
-    return await ctx.deps.jira.my_tickets(include_done=include_done)
+    tickets = await ctx.deps.jira.my_tickets(include_done=include_done)
+    return build_report(tickets, ctx.deps.rules)
 
 
 async def get_ticket_detail(ctx: RunContext[Deps], key: str) -> TicketDetail | str:
@@ -59,7 +65,7 @@ async def get_ticket_detail(ctx: RunContext[Deps], key: str) -> TicketDetail | s
         key: Jira ticket key, e.g. PROJ-123.
     """
     try:
-        return await ctx.deps.jira.get_ticket(key)
+        return ctx.deps.rules.annotate(await ctx.deps.jira.get_ticket(key))
     except InvalidTicketKeyError as e:
         # The model can fix this (wrong format) -> ask it to retry with a valid key.
         raise ModelRetry(str(e)) from e
