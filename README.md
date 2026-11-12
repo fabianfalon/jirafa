@@ -104,6 +104,15 @@ Para salir: `salir`, `exit`, `quit`, `q` o `Ctrl-D`.
 > [!NOTE]
 > Cada pregunta tiene un límite de seguridad de 10 llamadas al LLM y 15 llamadas a tools, para que un modelo confundido no entre en bucle ni dispare el coste.
 
+**Métricas** (`--stats`): tras cada respuesta muestra latencia, llamadas al LLM, uso de cada tool (con reintentos y fallos), tokens y coste; al salir del chat, los totales de la sesión.
+
+```bash
+uv run jirafa --stats "¿qué tengo pendiente?"
+# ejemplo: ⏱ 3.2s · 2 llamada(s) LLM (2.9s) · tools: list_my_tickets×1 (45ms) · 1,840→310 tokens · $0.0081
+```
+
+Para guardarlas, define `JIRAFA_METRICS_FILE=logs/metrics.jsonl`: una línea JSON por pregunta, **solo números**, nunca preguntas ni contenido de tickets. El coste lo calcula PydanticAI con la tabla de precios de cada proveedor; si no conoce el modelo, se muestra `coste ?`.
+
 ## Referencia
 
 ### Opciones de la CLI
@@ -114,6 +123,7 @@ Para salir: `salir`, `exit`, `quit`, `q` o `Ctrl-D`.
 | `--model <proveedor:modelo>` | Sobrescribe `JIRAFA_MODEL` para esta ejecución |
 | `--demo` | Usa tickets de ejemplo, diga lo que diga `.env` |
 | `--model test` | Modo sin LLM: modelo falso que solo llama a `list_my_tickets` (sin API key ni coste) |
+| `--stats` | Muestra latencia, llamadas, tokens y coste de cada pregunta y de la sesión |
 
 ### Configuración (`.env`)
 
@@ -127,6 +137,7 @@ Para salir: `salir`, `exit`, `quit`, `q` o `Ctrl-D`.
 | `JIRA_API_TOKEN` | — | Tu token de API de Atlassian (obligatorio en `real`) |
 | `JIRAFA_BLOCKED_STATUSES` | `Blocked,Bloqueado,Impedimento,On Hold,En espera` | Estados que cuentan como bloqueo en tu Jira (separados por comas) |
 | `JIRAFA_STALE_AFTER_DAYS` | `7` | Un ticket abierto sin cambios durante **más** de estos días se considera estancado |
+| `JIRAFA_METRICS_FILE` | — | Si se define, guarda las métricas de cada pregunta en ese fichero JSONL |
 
 ### Tools del agente
 
@@ -149,7 +160,7 @@ print(result.output)
 ## Desarrollo
 
 ```bash
-uv run pytest            # 46 tests, sin red ni LLM real
+uv run pytest            # 53 tests, sin red ni LLM real
 uv run ruff check        # linter
 uv run ruff format       # formateo
 uv run mypy              # verificador de tipos (estricto)
@@ -180,7 +191,8 @@ src/jirafa/
 - [x] Tests sin LLM ni red
 - [x] Verificador de tipos (mypy, modo estricto)
 - [x] Lógica determinista: tickets estancados y bloqueados en código
-- [ ] Observabilidad: tokens, coste, latencia y trazas
+- [x] Observabilidad v1: latencia, llamadas, tokens y coste (`--stats`, JSONL)
+- [ ] Observabilidad v2: trazas OpenTelemetry (p. ej. Langfuse autoalojado)
 - [ ] Probar contra Jira real
 - [ ] Evals con preguntas reales
 - [ ] Agente de triaje reutilizando el cliente de Jira

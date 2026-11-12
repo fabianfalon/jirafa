@@ -11,3 +11,6 @@ wheels/
 
 # Secrets
 .env
+
+# Local metrics (JIRAFA_METRICS_FILE)
+logs/
