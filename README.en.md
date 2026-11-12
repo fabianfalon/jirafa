@@ -103,6 +103,15 @@ To quit: `salir`, `exit`, `quit`, `q` or `Ctrl-D`.
 > [!NOTE]
 > Each question has a safety limit of 10 LLM calls and 15 tool calls, so a confused model can't loop forever or run up costs.
 
+**Metrics** (`--stats`): after each answer it shows latency, LLM calls, per-tool usage (with retries and failures), tokens and cost; when leaving the chat, the session totals.
+
+```bash
+uv run jirafa --stats "¿qué tengo pendiente?"
+# example: ⏱ 3.2s · 2 llamada(s) LLM (2.9s) · tools: list_my_tickets×1 (45ms) · 1,840→310 tokens · $0.0081
+```
+
+To keep them, set `JIRAFA_METRICS_FILE=logs/metrics.jsonl`: one JSON line per question, **numbers only**, never questions or ticket content. Cost is computed by PydanticAI from each provider's price table; if the model is unknown, it shows `coste ?`.
+
 ## Reference
 
 ### CLI options
@@ -113,6 +122,7 @@ To quit: `salir`, `exit`, `quit`, `q` or `Ctrl-D`.
 | `--model <provider:model>` | Overrides `JIRAFA_MODEL` for this run |
 | `--demo` | Uses sample tickets, whatever `.env` says |
 | `--model test` | No-LLM mode: fake model that only calls `list_my_tickets` (no API key, no cost) |
+| `--stats` | Shows latency, calls, tokens and cost per question and per session |
 
 ### Configuration (`.env`)
 
@@ -126,6 +136,7 @@ To quit: `salir`, `exit`, `quit`, `q` or `Ctrl-D`.
 | `JIRA_API_TOKEN` | — | Your Atlassian API token (required in `real`) |
 | `JIRAFA_BLOCKED_STATUSES` | `Blocked,Bloqueado,Impedimento,On Hold,En espera` | Statuses that mean blocked in your Jira (comma-separated) |
 | `JIRAFA_STALE_AFTER_DAYS` | `7` | An open ticket with no changes for **more** than these days is stale |
+| `JIRAFA_METRICS_FILE` | — | If set, each question's metrics are appended to this JSONL file |
 
 ### Agent tools
 
@@ -148,7 +159,7 @@ print(result.output)
 ## Development
 
 ```bash
-uv run pytest            # 46 tests, sin red ni LLM real
+uv run pytest            # 53 tests, sin red ni LLM real
 uv run ruff check        # linter
 uv run ruff format       # formateo
 uv run mypy              # verificador de tipos (estricto)
@@ -179,7 +190,8 @@ src/jirafa/
 - [x] Tests without LLM or network
 - [x] Type checker (mypy, strict mode)
 - [x] Deterministic logic: stale and blocked tickets in code
-- [ ] Observability: tokens, cost, latency and traces
+- [x] Observability v1: latency, calls, tokens and cost (`--stats`, JSONL)
+- [ ] Observability v2: OpenTelemetry traces (e.g. self-hosted Langfuse)
 - [ ] Try against real Jira
 - [ ] Evals with real questions
 - [ ] Triage agent reusing the Jira client

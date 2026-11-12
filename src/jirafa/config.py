@@ -4,6 +4,7 @@ Read from environment variables or from a `.env` file at the project root.
 No secrets hardcoded in the source.
 """
 
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -36,6 +37,10 @@ class Settings(BaseSettings):
     # NoDecode: read the raw string and split it ourselves instead of expecting JSON.
     jirafa_blocked_statuses: Annotated[list[str], NoDecode] = list(DEFAULT_BLOCKED_STATUSES)
     jirafa_stale_after_days: int = Field(default=DEFAULT_STALE_AFTER_DAYS, ge=1)
+
+    # Observability: if set, one JSON line per question is appended here (numbers only,
+    # never questions or ticket content). e.g. JIRAFA_METRICS_FILE=logs/metrics.jsonl
+    jirafa_metrics_file: Path | None = None
 
     @field_validator("jirafa_blocked_statuses", mode="before")
     @classmethod

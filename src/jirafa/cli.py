@@ -6,6 +6,7 @@ Usage:
     jirafa --demo                   # force fake tickets, whatever .env says
     jirafa --model anthropic:claude-sonnet-5-5
     jirafa --demo --model test      # offline: no LLM, no API key (pipeline check)
+    jirafa --stats                  # show latency, LLM/tool calls, tokens and cost
 """
 
 import argparse
@@ -16,7 +17,7 @@ import sys
 import httpx
 from dotenv import load_dotenv
 from pydantic import ValidationError
-from pydantic_ai import ModelMessage, UsageLimits
+from pydantic_ai import ModelMessage, RunUsage, UsageLimits
 from pydantic_ai.exceptions import AgentRunError, ModelAPIError, UserError
 from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
@@ -26,6 +27,7 @@ from rich.markdown import Markdown
 from jirafa.agent import Deps, build_agent
 from jirafa.config import Settings
 from jirafa.jira import DemoJiraClient, HttpJiraClient, JiraClient
+from jirafa.metrics import MetricsRecorder, format_totals, format_turn
 from jirafa.rules import AttentionRules
 
 # Safety net per question: a confused model can't loop forever (or burn money).
@@ -42,6 +44,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("question", nargs="?", help="pregunta única (sin ella, abre un chat)")
     parser.add_argument("--model", help="modelo 'proveedor:modelo' (sobrescribe JIRAFA_MODEL)")
     parser.add_argument("--demo", action="store_true", help="usar tickets de demo")
+    parser.add_argument(
+        "--stats", action="store_true", help="mostrar latencia, llamadas, tokens y coste"
+    )
     return parser.parse_args()
 
 
@@ -75,7 +80,9 @@ def show_answer(text: str, *, raw_json: bool = False) -> None:
     console.print(Markdown(text))
 
 
-async def chat(settings: Settings, model: str, first_question: str | None) -> None:
+async def chat(
+    settings: Settings, model: str, first_question: str | None, show_stats: bool = False
+) -> None:
     agent = build_agent(resolve_model(model))
     jira = build_jira_client(settings)
     rules = AttentionRules.from_names(
@@ -83,6 +90,7 @@ async def chat(settings: Settings, model: str, first_question: str | None) -> No
     )
     deps = Deps(jira=jira, rules=rules)
     history: list[ModelMessage] = []  # the conversation memory, resent on every turn
+    recorder = MetricsRecorder(model, settings.jirafa_metrics_file)
 
     console.print(f"🦒 [bold]jirafa[/]  ·  modelo: {model}  ·  Jira: {settings.jira_mode}")
     try:
@@ -99,21 +107,36 @@ async def chat(settings: Settings, model: str, first_question: str | None) -> No
                 if question.lower() in EXIT_WORDS:
                     break
 
+            recorder.start_turn()
+            usage = RunUsage()  # PydanticAI fills it in, even if the run fails halfway
+            error: Exception | None = None
             try:
                 with console.status("🦒 mirando tus tickets..."):
                     result = await agent.run(
-                        question, deps=deps, message_history=history, usage_limits=LIMITS
+                        question,
+                        deps=deps,
+                        message_history=history,
+                        usage_limits=LIMITS,
+                        usage=usage,
+                        capabilities=[recorder.capability],
                     )
                 history = result.all_messages()
                 show_answer(result.output, raw_json=model == "test")
             except ModelAPIError as e:
+                error = e
                 console.print(f"[red]Error del proveedor del LLM:[/] {e}")
             except httpx.HTTPStatusError as e:
+                error = e
                 console.print(
                     f"[red]Error de Jira ({e.response.status_code}):[/] revisa URL, email y token."
                 )
             except AgentRunError as e:  # usage limits, model misbehaving...
+                error = e
                 console.print(f"[red]El agente no pudo terminar:[/] {e}")
+
+            turn = recorder.end_turn(usage, error)
+            if show_stats:
+                console.print(f"[dim]{format_turn(turn)}[/]")
 
             if first_question is not None:  # one-shot mode
                 break
@@ -121,6 +144,8 @@ async def chat(settings: Settings, model: str, first_question: str | None) -> No
     finally:
         if isinstance(jira, HttpJiraClient):
             await jira.aclose()
+        if show_stats and len(recorder.turns) > 1:  # one question: its line already says it all
+            console.print(f"\n[dim]{format_totals(recorder.totals())}[/]")
 
 
 def main() -> None:
@@ -136,7 +161,8 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        asyncio.run(chat(settings, args.model or settings.jirafa_model, args.question))
+        model = args.model or settings.jirafa_model
+        asyncio.run(chat(settings, model, args.question, show_stats=args.stats))
     except UserError as e:  # missing API key, unknown model...
         console.print(f"[red]No se pudo crear el agente:[/] {e}")
         console.print(
