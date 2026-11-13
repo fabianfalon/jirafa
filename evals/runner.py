@@ -97,9 +97,7 @@ def check_case(case: dict[str, Any], *, tools: list[str], output: str) -> list[s
     return failures
 
 
-async def _run_once(
-    question: str, agent: Agent[Deps, str], deps: Deps
-) -> tuple[list[str], str]:
+async def _run_once(question: str, agent: Agent[Deps, str], deps: Deps) -> tuple[list[str], str]:
     result = await asyncio.wait_for(
         agent.run(
             question,
@@ -134,9 +132,7 @@ async def run_case(case: dict[str, Any], agent: Agent[Deps, str], deps: Deps) ->
             return CaseResult(
                 name=name,
                 ok=False,
-                failures=[
-                    f"timeout after {CASE_TIMEOUT_S:.0f}s ×{attempts} (LLM/API stalled)"
-                ],
+                failures=[f"timeout after {CASE_TIMEOUT_S:.0f}s ×{attempts} (LLM/API stalled)"],
                 seconds=time.perf_counter() - started,
             )
 
