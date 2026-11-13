@@ -112,6 +112,19 @@ uv run jirafa --stats "¿qué tengo pendiente?"
 
 To keep them, set `JIRAFA_METRICS_FILE=logs/metrics.jsonl`: one JSON line per question, **numbers only**, never questions or ticket content. Cost is computed by PydanticAI from each provider's price table; if the model is unknown, it shows `coste ?`.
 
+**Tested with a real model**: GLM 5.3 Flash (open-weight) served by [NaN](https://nan.builders) through its OpenAI-compatible API, with the demo tickets. jirafa called the tool once and applied the attention rules (blocked, stale) without making anything up:
+
+<p align="center">
+  <img alt="jirafa answering with GLM 5.3 Flash via NaN, with --stats" src="docs/images/real-model-glm.png" width="700">
+</p>
+
+```bash
+# Any OpenAI-compatible API: base URL + key from environment variables
+export OPENAI_BASE_URL=https://api.nan.builders/v1
+export OPENAI_API_KEY=<YOUR_API_KEY>
+uv run jirafa --demo --stats --model openai:glm5.3-flash
+```
+
 ## Reference
 
 ### CLI options
