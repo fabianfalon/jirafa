@@ -172,23 +172,32 @@ print(result.output)
 ## Development
 
 ```bash
-uv run pytest            # 53 tests, sin red ni LLM real
+uv run pytest            # 53 tests, no network or real LLM
 uv run ruff check        # linter
-uv run ruff format       # formateo
-uv run mypy              # verificador de tipos (estricto)
+uv run ruff format       # formatter
+uv run mypy              # type checker (strict)
+uv run python -m evals   # manual evals: DemoJira + real LLM (.env); not in CI
 ```
+
+> [!NOTE]
+> Evals (`evals/`) call a real LLM and spend tokens. They are not part of `pytest` or CI. Cases live in `evals/cases.yaml`.
 
 ```
 src/jirafa/
-├── cli.py           # chat en terminal
-├── agent.py         # instrucciones + tools + build_agent()
-├── config.py        # Settings (lee .env)
+├── cli.py           # terminal chat
+├── agent.py         # instructions + tools + build_agent()
+├── config.py        # Settings (reads .env)
 ├── models.py        # Ticket, TicketDetail, Comment
 └── jira/
-    ├── base.py          # JiraClient (Protocol) + JQL y validaciones
-    ├── http_client.py   # cliente real (Jira Cloud REST v3)
-    ├── demo_client.py   # cliente de ejemplo
-    └── adf.py           # Atlassian Document Format → texto
+    ├── base.py          # JiraClient (Protocol) + JQL and validation
+    ├── http_client.py   # real client (Jira Cloud REST v3)
+    ├── demo_client.py   # sample client
+    └── adf.py           # Atlassian Document Format → text
+
+evals/                   # outside pytest/CI; needs an API key and spends tokens
+├── cases.yaml           # questions + deterministic checks
+├── runner.py            # DemoJira + real LLM, timeout/retry on stalls
+└── __main__.py          # uv run python -m evals
 ```
 
 **Adding a tool**: write an `async` function in `agent.py` with clear type hints and docstring (that's what the LLM reads), add it to `tools=[...]` in `build_agent()`, and cover it with a test in `tests/test_agent.py` using `FunctionModel`.
@@ -206,7 +215,7 @@ src/jirafa/
 - [x] Observability v1: latency, calls, tokens and cost (`--stats`, JSONL)
 - [ ] Observability v2: OpenTelemetry traces (e.g. self-hosted Langfuse)
 - [ ] Try against real Jira
-- [ ] Evals with real questions
+- [x] Evals v1: thin harness + DemoJira + real LLM (`uv run python -m evals`)
 - [ ] Triage agent reusing the Jira client
 
 ## License
