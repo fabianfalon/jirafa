@@ -177,7 +177,11 @@ uv run pytest            # 53 tests, sin red ni LLM real
 uv run ruff check        # linter
 uv run ruff format       # formateo
 uv run mypy              # verificador de tipos (estricto)
+uv run python -m evals   # evals manuales: DemoJira + LLM real (.env); no CI
 ```
+
+> [!NOTE]
+> Los evals (`evals/`) llaman a un LLM de verdad y gastan tokens. No forman parte de `pytest` ni del CI. Casos en `evals/cases.yaml`.
 
 ```
 src/jirafa/
@@ -190,6 +194,11 @@ src/jirafa/
     ├── http_client.py   # cliente real (Jira Cloud REST v3)
     ├── demo_client.py   # cliente de ejemplo
     └── adf.py           # Atlassian Document Format → texto
+
+evals/                   # fuera de pytest/CI; necesita API key y gasta tokens
+├── cases.yaml           # preguntas + checks deterministas
+├── runner.py            # DemoJira + LLM real, timeout/retry ante stalls
+└── __main__.py          # uv run python -m evals
 ```
 
 **Añadir una tool**: escribe una función `async` en `agent.py` con tipos y docstring claros (son lo que lee el LLM), añádela a `tools=[...]` en `build_agent()` y cúbrela con un test en `tests/test_agent.py` usando `FunctionModel`.
@@ -207,7 +216,7 @@ src/jirafa/
 - [x] Observabilidad v1: latencia, llamadas, tokens y coste (`--stats`, JSONL)
 - [ ] Observabilidad v2: trazas OpenTelemetry (p. ej. Langfuse autoalojado)
 - [ ] Probar contra Jira real
-- [ ] Evals con preguntas reales
+- [x] Evals v1: harness propio + DemoJira + LLM real (`uv run python -m evals`)
 - [ ] Agente de triaje reutilizando el cliente de Jira
 
 ## Licencia

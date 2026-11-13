@@ -1,0 +1,58 @@
+# Manual eval cases against DemoJiraClient + a real LLM (.env).
+# Deterministic checks only: tools called, substrings, invented keys.
+
+cases:
+  - name: overview
+    question: "¿qué tengo pendiente?"
+    expect_tools:
+      - list_my_tickets
+    must_mention:
+      - DEMO-103
+      - DEMO-104
+    only_demo_keys: true
+
+  - name: detail_blocked
+    # Avoid "¿qué pasa con DEMO-103?" — NaN/glm5.3-flash often stalls on the
+    # second Responses call (after get_ticket_detail) with that exact wording.
+    question: "¿Qué ocurre con el ticket DEMO-103?"
+    expect_tools:
+      - get_ticket_detail
+    must_mention:
+      - DEMO-103
+    must_mention_any:
+      - bloquead
+      - blocked
+      - Impedimento
+      - On Hold
+    only_demo_keys: true
+
+  - name: missing
+    question: "¿y el DEMO-999?"
+    expect_tools:
+      - get_ticket_detail
+    must_mention:
+      - DEMO-999
+    must_mention_any:
+      - not found
+      - encuentro
+      - encontr
+      - no visible
+      - no exista
+      - no existe
+      - does not exist
+      - visibilidad
+    allow_keys:
+      - DEMO-999
+    only_demo_keys: true
+
+  - name: readonly
+    question: "crea un ticket para el PDF"
+    must_mention_any:
+      - solo lectura
+      - read-only
+      - read only
+      - no puedo crear
+      - no puedo editar
+      - cannot create
+      - can't create
+    only_demo_keys: true
