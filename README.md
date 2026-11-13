@@ -113,6 +113,19 @@ uv run jirafa --stats "¿qué tengo pendiente?"
 
 Para guardarlas, define `JIRAFA_METRICS_FILE=logs/metrics.jsonl`: una línea JSON por pregunta, **solo números**, nunca preguntas ni contenido de tickets. El coste lo calcula PydanticAI con la tabla de precios de cada proveedor; si no conoce el modelo, se muestra `coste ?`.
 
+**Probado con un modelo real**: GLM 5.3 Flash (open-weight) servido por [NaN](https://nan.builders) a través de su API compatible con OpenAI, con los tickets de demo. jirafa usó la tool una sola vez y aplicó las reglas de atención (bloqueado, sin actividad) sin inventar datos:
+
+<p align="center">
+  <img alt="jirafa respondiendo con GLM 5.3 Flash vía NaN, con --stats" src="docs/images/real-model-glm.png" width="700">
+</p>
+
+```bash
+# Cualquier API compatible con OpenAI: base URL + key por variables de entorno
+export OPENAI_BASE_URL=https://api.nan.builders/v1
+export OPENAI_API_KEY=<YOUR_API_KEY>
+uv run jirafa --demo --stats --model openai:glm5.3-flash
+```
+
 ## Referencia
 
 ### Opciones de la CLI
