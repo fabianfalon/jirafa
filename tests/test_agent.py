@@ -62,6 +62,37 @@ async def test_list_then_answer(demo_jira: DemoJiraClient) -> None:
     }
 
 
+async def test_list_by_priority_filters_and_keeps_rules(demo_jira: DemoJiraClient) -> None:
+    llm = scripted_llm(
+        [ToolCallPart("list_my_tickets", {"priority": "alta"})],
+        [TextPart("Tienes 2 tickets de prioridad alta.")],
+    )
+
+    result = await build_agent(llm).run("¿Qué tengo de prioridad alta?", deps=Deps(jira=demo_jira))
+
+    [ret] = tool_returns(result.all_messages())
+    assert ret.outcome == "success"
+    report = ret.content
+    assert report.priority == "alta"
+    assert report.total == 2
+    assert {t.key for t in report.tickets} == {"DEMO-101", "DEMO-103"}
+    assert report.blocked_keys == ["DEMO-103"]
+    assert report.stale_keys == ["DEMO-103"]
+
+
+async def test_list_with_blank_priority_does_not_filter(demo_jira: DemoJiraClient) -> None:
+    llm = scripted_llm(
+        [ToolCallPart("list_my_tickets", {"priority": "   "})],
+        [TextPart("Tienes 5 tickets abiertos.")],
+    )
+
+    result = await build_agent(llm).run("¿Qué tengo?", deps=Deps(jira=demo_jira))
+
+    [ret] = tool_returns(result.all_messages())
+    assert ret.outcome == "success"
+    assert ret.content.total == 5
+
+
 async def test_invalid_key_makes_the_model_retry(demo_jira: DemoJiraClient) -> None:
     llm = scripted_llm(
         [ToolCallPart("get_ticket_detail", {"key": "DEMO 103"})],  # bad format

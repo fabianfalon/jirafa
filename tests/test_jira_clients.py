@@ -119,3 +119,29 @@ async def test_demo_hides_done_tickets_by_default(demo_jira: DemoJiraClient) -> 
 async def test_demo_sorted_most_recent_first(demo_jira: DemoJiraClient) -> None:
     tickets = await demo_jira.my_tickets()
     assert tickets == sorted(tickets, key=lambda t: t.updated, reverse=True)
+
+
+async def test_demo_filters_by_priority_case_and_space_insensitively(
+    demo_jira: DemoJiraClient,
+) -> None:
+    tickets = await demo_jira.my_tickets(priority="  alta ")
+
+    assert {t.key for t in tickets} == {"DEMO-101", "DEMO-103"}
+    assert all(t.priority and t.priority.lower() == "alta" for t in tickets)
+
+
+async def test_demo_priority_filter_combines_with_status_and_include_done(
+    demo_jira: DemoJiraClient,
+) -> None:
+    blocked = await demo_jira.my_tickets(status="Bloqueado", priority="Alta")
+    assert [t.key for t in blocked] == ["DEMO-103"]
+
+    open_low = await demo_jira.my_tickets(priority="Baja")
+    all_low = await demo_jira.my_tickets(priority="Baja", include_done=True)
+    assert {t.key for t in open_low} == {"DEMO-104"}
+    assert {t.key for t in all_low} == {"DEMO-099", "DEMO-104"}
+
+
+async def test_demo_blank_priority_does_not_filter(demo_jira: DemoJiraClient) -> None:
+    assert len(await demo_jira.my_tickets(priority="   ")) == 5
+    assert len(await demo_jira.my_tickets(priority=None)) == 5

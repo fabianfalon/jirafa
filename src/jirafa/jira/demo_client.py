@@ -7,7 +7,12 @@ Spanish on purpose, to resemble a real Spanish-speaking team's Jira.
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from jirafa.jira.base import JiraClient, TicketNotFoundError, normalize_key
+from jirafa.jira.base import (
+    JiraClient,
+    TicketNotFoundError,
+    normalize_key,
+    priority_candidates,
+)
 from jirafa.models import Comment, StatusCategory, Ticket, TicketDetail
 
 _BASE_URL = "https://demo.atlassian.net"
@@ -95,14 +100,22 @@ _TICKETS = [
 
 class DemoJiraClient(JiraClient):
     async def my_tickets(
-        self, status: str | None = None, include_done: bool = False
+        self,
+        status: str | None = None,
+        include_done: bool = False,
+        priority: str | None = None,
     ) -> list[Ticket]:
         now = datetime.now(UTC)
+        priority_names = {candidate.casefold() for candidate in priority_candidates(priority or "")}
         result = [
             self._to_ticket(t, now)
             for t in _TICKETS
             if (include_done or t.category != StatusCategory.DONE)
             and (status is None or t.status.lower() == status.strip().lower())
+            and (
+                not priority_names
+                or (t.priority.strip() != "" and t.priority.strip().casefold() in priority_names)
+            )
         ]
         return sorted(result, key=lambda t: t.updated, reverse=True)
 

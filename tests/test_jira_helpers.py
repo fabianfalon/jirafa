@@ -10,6 +10,7 @@ from jirafa.jira.base import (
     build_my_tickets_jql,
     days_since,
     normalize_key,
+    priority_candidates,
     to_status_category,
 )
 from jirafa.models import StatusCategory
@@ -24,6 +25,25 @@ def test_normalize_key_accepts_valid_keys(raw: str) -> None:
 def test_normalize_key_rejects_garbage(raw: str) -> None:
     with pytest.raises(InvalidTicketKeyError):
         normalize_key(raw)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("Alta", ["Alta", "High"]),
+        (" alta ", ["alta", "High"]),
+        ("HIGH", ["HIGH"]),  # alias equals the value case-insensitively: no duplicate
+        ("Media", ["Media", "Medium"]),
+        ("normal", ["normal", "Medium"]),
+        ("Crítica", ["Crítica", "Highest"]),
+        ("critica", ["critica", "Highest"]),
+        ("P1", ["P1"]),
+        ("   ", []),
+        ("", []),
+    ],
+)
+def test_priority_candidates_keep_user_value_first(raw: str, expected: list[str]) -> None:
+    assert priority_candidates(raw) == expected
 
 
 def test_jql_defaults_to_open_tickets() -> None:

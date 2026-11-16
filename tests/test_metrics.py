@@ -64,7 +64,10 @@ class BrokenJira:
     """A Jira client that fails, e.g. network down."""
 
     async def my_tickets(
-        self, status: str | None = None, include_done: bool = False
+        self,
+        status: str | None = None,
+        include_done: bool = False,
+        priority: str | None = None,
     ) -> list[Ticket]:
         raise RuntimeError("Jira is down")
 

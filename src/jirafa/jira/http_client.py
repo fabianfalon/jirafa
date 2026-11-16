@@ -49,8 +49,13 @@ class HttpJiraClient(JiraClient):
         await self._http.aclose()
 
     async def my_tickets(
-        self, status: str | None = None, include_done: bool = False
+        self,
+        status: str | None = None,
+        include_done: bool = False,
+        priority: str | None = None,
     ) -> list[Ticket]:
+        if priority and priority.strip():
+            raise NotImplementedError("priority filtering for real Jira lands in the next phase")
         # Note: returns the first `max_results` tickets (most recently updated first).
         response = await self._http.get(
             "/rest/api/3/search/jql",
