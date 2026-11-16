@@ -54,13 +54,11 @@ class HttpJiraClient(JiraClient):
         include_done: bool = False,
         priority: str | None = None,
     ) -> list[Ticket]:
-        if priority and priority.strip():
-            raise NotImplementedError("priority filtering for real Jira lands in the next phase")
         # Note: returns the first `max_results` tickets (most recently updated first).
         response = await self._http.get(
             "/rest/api/3/search/jql",
             params={
-                "jql": build_my_tickets_jql(status, include_done),
+                "jql": build_my_tickets_jql(status, include_done, priority),
                 "fields": _SUMMARY_FIELDS,
                 "maxResults": self._max_results,
             },

@@ -74,14 +74,25 @@ def priority_candidates(value: str) -> list[str]:
     return candidates
 
 
-def build_my_tickets_jql(status: str | None = None, include_done: bool = False) -> str:
+def _jql_literal(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def build_my_tickets_jql(
+    status: str | None = None,
+    include_done: bool = False,
+    priority: str | None = None,
+) -> str:
     """Build the JQL query in code, never letting the LLM write raw JQL."""
     clauses = ["assignee = currentUser()"]
     if not include_done:
         clauses.append("statusCategory != Done")
     if status:
-        escaped = status.replace("\\", "\\\\").replace('"', '\\"')
-        clauses.append(f'status = "{escaped}"')
+        clauses.append(f'status = "{_jql_literal(status)}"')
+    candidates = priority_candidates(priority or "")
+    if candidates:
+        values = ", ".join(f'"{_jql_literal(candidate)}"' for candidate in candidates)
+        clauses.append(f"priority IN ({values})")
     return " AND ".join(clauses) + " ORDER BY updated DESC"
 
 

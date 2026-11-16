@@ -67,6 +67,18 @@ async def test_my_tickets_maps_jira_json_to_tickets(client: HttpJiraClient) -> N
 
 
 @respx.mock
+async def test_my_tickets_sends_priority_filter_to_jira(client: HttpJiraClient) -> None:
+    route = respx.get(f"{BASE_URL}/rest/api/3/search/jql").respond(json={"issues": []})
+
+    await client.my_tickets(status="Bloqueado", priority="Alta")
+
+    jql = route.calls.last.request.url.params["jql"]
+    assert 'status = "Bloqueado"' in jql
+    assert 'priority IN ("Alta", "High")' in jql
+    assert jql.endswith("ORDER BY updated DESC")
+
+
+@respx.mock
 async def test_get_ticket_converts_adf_and_keeps_latest_comments(client: HttpJiraClient) -> None:
     comments = [
         {
