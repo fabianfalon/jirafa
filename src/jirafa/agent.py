@@ -33,6 +33,10 @@ and share the ticket URL so the user can do it in Jira.
 them as they are: never recount, recompute dates or apply your own thresholds.
 - Be brief. By default, list tickets following keys_by_status and show key, title, priority \
 and days since last update. If the user asks for another view (e.g. by priority), adapt.
+- When the user asks for a priority (e.g. "alta", "High", "P1"), pass it exactly as they \
+said it to list_my_tickets' priority argument. Omit it or leave it empty for all priorities. \
+The tool returns only the filtered tickets, so counts, groups, blocked and stale apply to \
+that subset.
 - Always point out blocked and stale tickets, saying why (blocked status, or days without updates).
 - Always mention ticket keys (e.g. PROJ-123) so the user can find them.
 """
@@ -43,7 +47,9 @@ and days since last update. If the user asks for another view (e.g. by priority)
 # JSON schema the LLM sees, so type hints and docstrings ARE the tool's prompt.
 
 
-async def list_my_tickets(ctx: RunContext[Deps], include_done: bool = False) -> TicketsReport:
+async def list_my_tickets(
+    ctx: RunContext[Deps], include_done: bool = False, priority: str | None = None
+) -> TicketsReport:
     """Report on the Jira tickets assigned to the current user.
 
     Includes precomputed totals, keys grouped by status, blocked and stale tickets,
@@ -51,9 +57,11 @@ async def list_my_tickets(ctx: RunContext[Deps], include_done: bool = False) -> 
 
     Args:
         include_done: Also include finished tickets. Only when the user asks about completed work.
+        priority: Priority exactly as the user says it ('alta', 'High', 'P1'...). Omit it or
+            leave it empty to include every priority.
     """
-    tickets = await ctx.deps.jira.my_tickets(include_done=include_done)
-    return build_report(tickets, ctx.deps.rules)
+    tickets = await ctx.deps.jira.my_tickets(include_done=include_done, priority=priority)
+    return build_report(tickets, ctx.deps.rules, priority=priority)
 
 
 async def get_ticket_detail(ctx: RunContext[Deps], key: str) -> TicketDetail | str:

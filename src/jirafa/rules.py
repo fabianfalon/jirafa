@@ -70,10 +70,16 @@ class TicketsReport(BaseModel):
         description="Open tickets not updated for more than stale_after_days days"
     )
     stale_after_days: int
+    priority: str | None = Field(
+        default=None,
+        description="Priority filter applied to this report, if any, as the user said it",
+    )
     tickets: list[Ticket]
 
 
-def build_report(tickets: list[Ticket], rules: AttentionRules) -> TicketsReport:
+def build_report(
+    tickets: list[Ticket], rules: AttentionRules, *, priority: str | None = None
+) -> TicketsReport:
     """Annotate tickets and summarize them. Pure function: same input, same output."""
     annotated = [rules.annotate(t) for t in tickets]
     ordered = sorted(annotated, key=lambda t: _CATEGORY_ORDER.index(t.status_category))
@@ -90,5 +96,6 @@ def build_report(tickets: list[Ticket], rules: AttentionRules) -> TicketsReport:
         blocked_keys=[t.key for t in annotated if t.is_blocked],
         stale_keys=[t.key for t in annotated if t.is_stale],
         stale_after_days=rules.stale_after_days,
+        priority=priority,
         tickets=annotated,
     )

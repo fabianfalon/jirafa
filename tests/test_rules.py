@@ -17,6 +17,7 @@ def ticket(
     status: str = "In Progress",
     category: StatusCategory = StatusCategory.IN_PROGRESS,
     days: int = 0,
+    priority: str | None = None,
 ) -> Ticket:
     return Ticket(
         key=key,
@@ -24,6 +25,7 @@ def ticket(
         issue_type="Task",
         status=status,
         status_category=category,
+        priority=priority,
         updated=NOW,
         days_since_update=days,
         url=f"https://x/browse/{key}",
@@ -94,6 +96,21 @@ def test_report_counts_groups_and_flags() -> None:
 def test_report_of_no_tickets() -> None:
     report = build_report([], RULES)
     assert report.total == 0 and report.keys_by_status == {} and report.count_by_category == {}
+    assert report.priority is None
+
+
+def test_report_records_priority_and_annotates_only_that_subset() -> None:
+    tickets = [
+        ticket("P-1", "Blocked", days=20, priority="Alta"),
+        ticket("P-2", "In Progress", days=1, priority="Media"),
+    ]
+
+    report = build_report(tickets, RULES, priority="Alta")
+
+    assert report.priority == "Alta"
+    assert report.total == 2
+    assert report.blocked_keys == ["P-1"]
+    assert report.stale_keys == ["P-1"]
 
 
 async def test_report_on_demo_data(demo_jira: DemoJiraClient) -> None:
@@ -103,6 +120,19 @@ async def test_report_on_demo_data(demo_jira: DemoJiraClient) -> None:
     assert report.blocked_keys == ["DEMO-103"]
     assert sorted(report.stale_keys) == ["DEMO-103", "DEMO-104"]
     assert "DEMO-105" not in report.stale_keys  # 6 days: not yet
+
+
+async def test_report_on_priority_filtered_demo_data(demo_jira: DemoJiraClient) -> None:
+    """The priority filter narrows the tickets first, then the rules run on that subset."""
+    report = build_report(
+        await demo_jira.my_tickets(priority="Alta"), AttentionRules(), priority="Alta"
+    )
+
+    assert report.priority == "Alta"
+    assert report.total == 2
+    assert {t.key for t in report.tickets} == {"DEMO-101", "DEMO-103"}
+    assert report.blocked_keys == ["DEMO-103"]
+    assert report.stale_keys == ["DEMO-103"]  # DEMO-101 is only 1 day old
 
 
 # --- configuration -------------------------------------------------------------------
